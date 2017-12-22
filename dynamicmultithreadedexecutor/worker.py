@@ -7,10 +7,11 @@ import traceback
 
 # internal imports
 from utils import get_input_vars
+from exceptions import KillExecution
 
 LOGGER = logging.getLogger(__name__)
 
-def worker(inq, outq, deathq, worker_function,common_kwargs):
+def worker(inq, outq, deathq, worker_function,common_kwargs, kill_boolean):
     """
     Worker function that is called once per item in inq but in a multithreaded manner
 
@@ -23,17 +24,21 @@ def worker(inq, outq, deathq, worker_function,common_kwargs):
     :param deathq: we pull from here every execution, if we get something we return and therefore kill off our thread
     :param worker_function: user provided function to execute
     :param common_kwargs: additional args the worker_function may or may not want
+    :param kill_boolean: allows us to kill the whole execution from the worker raising a KillExecution exception
 
     :type inq: Queue
     :type outq: Queue
     :type deathq: Queue
-    :type worker_function: FunctionType
+    :type worker_function: callable
+    :type common_kwargs: dict
+    :type kill_boolean: bool
     """
     assert isinstance(inq, Queue)
     assert isinstance(outq, Queue)
     assert isinstance(deathq, Queue)
-    assert isinstance(worker_function, six.types.FunctionType)
+    assert callable(worker_function)
     assert common_kwargs is None or isinstance(common_kwargs, dict)
+    assert isinstance(kill_boolean, bool)
 
     LOGGER.info("spinning up thread: {}".format(threading.current_thread().name))
 
@@ -56,9 +61,13 @@ def worker(inq, outq, deathq, worker_function,common_kwargs):
             pass
         else:
             # we didn't get an Empty exception, that means we need to die
-            LOGGER.info("spinning down thread: {}".format(threading.current_thread().name))
+            LOGGER.info("spinning down thread: {} - got a death threat from deathq".format(threading.current_thread().name))
             return
-
+            
+        if kill_boolean:
+            LOGGER.info("spinning down thread: {} - got a death threat from kill_boolean".format(threading.current_thread().name))
+            return
+        
         # get work to do
         try:
             itm_to_run = inq.get(timeout=5)
@@ -69,10 +78,18 @@ def worker(inq, outq, deathq, worker_function,common_kwargs):
         # Do work son!
         try:
             task_inputs[first_arg_name] = itm_to_run
-            output = worker_function(**task_inputs)
+            response = worker_function(**task_inputs)
+            
+            output = {"execution_success":True,
+                      "task_output":response
+                      }
+        except KillExecution:
+            kill_boolean = True
+            return
         except Exception as e:
             tb = traceback.format_exec()
-            output = {"exception":str(e),
+            output = {"execution_success":False,
+                      "exception_message":str(e)
                       "traceback":tb
                       }
 

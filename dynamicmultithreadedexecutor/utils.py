@@ -15,7 +15,9 @@ def get_input_vars(func, possible_inputs, check_compliance = True):
     :param possible_inputs: dict to check
     :return: inputs to provde to function using kwargs
     """
-    assert isinstance(func, six.types.FunctionType)
+    #TODO: Should look into using functools.partial instead
+    
+    assert callable(func)
     assert isinstance(possible_inputs, dict)
 
     asked_for =  func.__code__.co_varnames[:func.__code__.co_argcount]

@@ -48,12 +48,12 @@ def execute_dynamic_multithreaded_task(iterable, common_kwargs, thread_checker_f
     # Type checking on all inputs
     assert isinstance(iterable, collections.Iterable)
     assert isinstance(common_kwargs, dict)
-    assert isinstance(thread_checker_func, six.types.FunctionType)
+    assert callable(thread_checker_func)
     assert isinstance(poll_period, six.integer_types)
-    assert isinstance(worker_function, six.types.FunctionType)
-    assert isinstance(output_queue_handler, six.types.FunctionType)
-    assert on_start is None or isinstance(on_start, six.types.FunctionType)
-    assert on_finish is None or isinstance(on_finish, six.types.FunctionType)
+    assert callable(worker_function)
+    assert callable(output_queue_handler)
+    assert on_start is None or callable(on_start)
+    assert on_finish is None or callable(on_finish)
 
     LOGGER.info("all assertions passed")
     
@@ -78,6 +78,7 @@ def execute_dynamic_multithreaded_task(iterable, common_kwargs, thread_checker_f
     inq = Queue() # queue full of filenames
     outq = Queue() # queue we will write from
     deathq = Queue() # queue to tell the next thread that's done with execution to die
+    kill_boolean = False
 
     # Execute our on_start function
     if on_start:
@@ -119,7 +120,7 @@ def execute_dynamic_multithreaded_task(iterable, common_kwargs, thread_checker_f
 
     # spin up our finisher thread
     LOGGER.info("starting up finisher thread")
-    fin_thread = threading.Thread(target=finisher, kwargs={"outq":outq, "output_queue_handler":output_queue_handler,"common_kwargs":common_kwargs})
+    fin_thread = threading.Thread(target=finisher, kwargs={"outq":outq, "output_queue_handler":output_queue_handler,"common_kwargs":common_kwargs,"kill_boolean":kill_boolean})
     fin_thread.start()
 
     # do all the executions, scaling up/down as needed
@@ -130,7 +131,11 @@ def execute_dynamic_multithreaded_task(iterable, common_kwargs, thread_checker_f
 
     while True:
         last_run = datetime.datetime.now()
-
+        if kill_boolean:
+            # everything should spin down and die
+            LOGGER.debug("kill_boolean is true, we are going to stop now!")
+            return
+            
         if not inq.empty():
             # get new target for our threads
             target_threads = thread_checker_func(**thread_checker_func_vars)
@@ -146,7 +151,7 @@ def execute_dynamic_multithreaded_task(iterable, common_kwargs, thread_checker_f
             # spin up threads if need be
             while len(thread_list) < target_threads:
                 LOGGER.debug("spinning up a new worker thread")
-                base_kwargs = {"inq":inq,"outq":outq,"deathq":deathq,"worker_function":worker_function,"common_kwargs":common_kwargs}
+                base_kwargs = {"inq":inq,"outq":outq,"deathq":deathq,"worker_function":worker_function,"common_kwargs":common_kwargs, "kill_boolean":kill_boolean}
                 t = threading.Thread(target=worker, kwargs=base_kwargs)
                 t.start()
                 thread_list.append(t)

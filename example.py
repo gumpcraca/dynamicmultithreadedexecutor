@@ -39,4 +39,5 @@ poll_period = 20
 
 LOGGER.info("STARTING UP!")
 execute_dynamic_multithreaded_task(iterable, common_kwargs, thread_checker_func, poll_period, worker_function, output_queue_handler, on_start, on_finish)
+
 LOGGER.info("ENDED!")
