@@ -37,7 +37,7 @@ def worker(inq, outq, deathq, worker_function, kill_boolean):
     assert callable(worker_function)
     assert isinstance(kill_boolean, threading.Event)
 
-    LOGGER.info("spinning up thread: {}".format(threading.current_thread().name))
+    LOGGER.info("spinning up thread: %s", threading.current_thread().name)
     
 #     I give up... can't get this to work  yet    
 #     if get_num_input_vars(worker_function) != 1:
@@ -53,11 +53,11 @@ def worker(inq, outq, deathq, worker_function, kill_boolean):
             pass
         else:
             # we didn't get an Empty exception, that means we need to die
-            LOGGER.info("spinning down thread: {} - got a death threat from deathq".format(threading.current_thread().name))
+            LOGGER.info("spinning down thread: %s - got a death threat from deathq", threading.current_thread().name)
             return
             
         if kill_boolean.is_set():
-            LOGGER.info("spinning down thread: {} - got a death threat from kill_boolean".format(threading.current_thread().name))
+            LOGGER.info("spinning down thread: %s - got a death threat from kill_boolean", threading.current_thread().name)
             return
         else:
             LOGGER.debug("kill_boolean is not set, continuing!")
@@ -66,7 +66,7 @@ def worker(inq, outq, deathq, worker_function, kill_boolean):
         try:
             itm_to_run = inq.get(timeout=5)
         except Empty:
-            LOGGER.info("inQ is empty, thread {} returning".format(threading.current_thread().name))
+            LOGGER.info("inQ is empty, thread %s returning", threading.current_thread().name)
             return
 
         # Do work son!

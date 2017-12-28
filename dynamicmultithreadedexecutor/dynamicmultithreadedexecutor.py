@@ -124,7 +124,7 @@ def execute_dynamic_multithreaded_task(iterable, thread_checker_func, poll_perio
             # keeping this out of the if statement above in case we get exceptions in our child threads, we can spin up new workers
             thread_list = [t for t in thread_list if t.is_alive()]
 
-            LOGGER.debug("Currently have {} threads running".format(len(thread_list)))
+            LOGGER.debug("Currently have %s threads running", len(thread_list))
 
         else:
             # inq is empty, we need to see if we have any threads
@@ -141,7 +141,7 @@ def execute_dynamic_multithreaded_task(iterable, thread_checker_func, poll_perio
                 LOGGER.info("All threads have spun down, returning!")
                 return
             else:
-                LOGGER.info("inq is empty, but looks like we still have {} threads running, we will wait until all threads complete".format(len(thread_list)))
+                LOGGER.info("inq is empty, but looks like we still have %s threads running, we will wait until all threads complete", len(thread_list))
 
 
         # only check for load every [poll_period] seconds
