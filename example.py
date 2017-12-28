@@ -4,6 +4,8 @@ from dynamicmultithreadedexecutor.exceptions import KillExecution
 from random import randrange
 import logging
 import time
+from functools import partial
+
 
 FORMAT = '%(asctime)s - %(levelname)s - %(message)s'
 logging.basicConfig(format=FORMAT)
@@ -13,10 +15,11 @@ LOGGER = logging.getLogger(__name__)
 
 
 # callables/functions provided can be as simple as a regular function
-def thread_checker_func():
-    start = 5
-    end = 10
+# but we're going to demo using a partial here instead
+def thread_checker_func(start, end):
     return randrange(start, end)
+
+thread_checker = partial(thread_checker_func, 5, 10)
 
 # you can also pass in a callable class if you'd like to have some additional variables provided to the worker
 class worker():
@@ -43,6 +46,6 @@ iterable = range(100)
 poll_period = 20
 
 LOGGER.info("STARTING UP!")
-execute_dynamic_multithreaded_task(iterable, thread_checker_func, poll_period, worker(), output_queue_handler(1,2,3).run)
+execute_dynamic_multithreaded_task(iterable, thread_checker, poll_period, worker(), output_queue_handler(1,2,3).run)
 
 LOGGER.info("ENDED!")
