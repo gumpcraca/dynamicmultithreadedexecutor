@@ -9,9 +9,9 @@ import collections
 import inspect
 
 # internal imports
-from finisher import finisher
-from worker import worker
-from utils import get_num_input_vars
+from .finisher import finisher
+from .worker import worker
+from .utils import get_num_input_vars
 
 LOGGER = logging.getLogger(__name__)
 

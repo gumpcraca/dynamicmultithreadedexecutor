@@ -4,7 +4,7 @@ import six
 import logging
 
 # internal imports
-from utils import get_num_input_vars
+from .utils import get_num_input_vars
 
 LOGGER = logging.getLogger(__name__)
 

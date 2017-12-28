@@ -6,8 +6,8 @@ import logging
 import traceback
 
 # internal imports
-from utils import get_num_input_vars
-from exceptions import KillExecution
+from .utils import get_num_input_vars
+from .exceptions import KillExecution
 
 LOGGER = logging.getLogger(__name__)
 
@@ -82,7 +82,7 @@ def worker(inq, outq, deathq, worker_function, kill_boolean):
             tb = traceback.format_exec()
             output = {
                 "execution_success":False,
-                "exception_message":str(e)
+                "exception_message":str(e),
                 "traceback":tb
             }
 
