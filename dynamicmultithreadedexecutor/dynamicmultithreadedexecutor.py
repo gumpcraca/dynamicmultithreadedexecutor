@@ -6,11 +6,12 @@ import threading
 from six.moves.queue import Queue
 import datetime
 import collections
+import inspect
 
 # internal imports
 from finisher import finisher
 from worker import worker
-from utils import get_input_vars
+from utils import get_num_input_vars
 
 LOGGER = logging.getLogger(__name__)
 
@@ -19,27 +20,21 @@ LOGGER = logging.getLogger(__name__)
 # TODO: Need ability of worker thread to notify main thread to stop - seems like a queue is the right way to go, or maybe a lock/event/semaphore
 
 
-def execute_dynamic_multithreaded_task(iterable, common_kwargs, thread_checker_func, poll_period, worker_function, output_queue_handler, on_start=None, on_finish=None):
+def execute_dynamic_multithreaded_task(iterable, thread_checker_func, poll_period, worker_function, output_queue_handler):
     """
     Execute a function for every item in iterable with a dynamic number of threads as defined by the return of thread_checker_func
 
     :type iterable: any iterable
-    :type common_kwargs: dict or None
-    :type thread_checker_func: function with zero parameters or items from common_kwargs
+    :type thread_checker_func: function with zero parameters and returns int of # of threads should be running
     :type poll_period: int
     :type worker_function: function with at least 1 parameter
     :type output_queue_handler: function with at least 1 parameter
-    :type on_start: None or function, function must return none or dict of variables to mutate
-    :type on_finish: None or function, function returns are not used
 
     :param iterable: Iterable to pass into worker_function
-    :param common_kwargs: additional kwargs to be provided to output_queue_handler as well as worker_function
     :param thread_checker_func: function that accepts no args and will return int for # of threads we should run
     :param poll_period: how often (in sec) we will run thread_checker_func
     :param worker_function: function that will be run multi-threaded and once per item in file_list
     :param output_queue_handler: consume things that worker_function returns. this will run single threaded, once per execution
-    :param on_start: this will be run once at the very start of the execution before any additional threads are spun up. it will be provided iterable and common_kwargs, it will be allowed to mutate iterable or anything in common_kwargs
-    :param on_finish: this will be run once at the very end of the execution after all other threads are spun down.
 
     :rtype : None - output_queue_handler should handle all output functionality
     """
@@ -47,71 +42,31 @@ def execute_dynamic_multithreaded_task(iterable, common_kwargs, thread_checker_f
 
     # Type checking on all inputs
     assert isinstance(iterable, collections.Iterable)
-    assert isinstance(common_kwargs, dict)
     assert callable(thread_checker_func)
     assert isinstance(poll_period, six.integer_types)
     assert callable(worker_function)
     assert callable(output_queue_handler)
-    assert on_start is None or callable(on_start)
-    assert on_finish is None or callable(on_finish)
 
-    LOGGER.info("all assertions passed")
+    LOGGER.info("all assertions passed, doing some checks on the callables passed in")
     
     # Validate function inputs are good (check to ensure they accept at least one variable
-    if worker_function.__code__.co_argcount < 1:
-        raise RuntimeError("worker_function must accept at least one input variable")
+    if get_num_input_vars(worker_function) != 1:
+        raise RuntimeError("worker_function must accept one and only one inputs")
 
-    if output_queue_handler.__code__.co_argcount < 1:
-        raise RuntimeError("output_queue_handler must accept at least one input variable")
-
-    if worker_function.__code__.co_varnames[0] in common_kwargs:
-        raise RuntimeError("worker_functions's first arg must be whatever comes from iterable and not a key in common_args")
-
-    if output_queue_handler.__code__.co_varnames[0] in common_kwargs:
-        raise RuntimeError("output_queue_handler's first arg must be whatever comes from iterable and not a key in common_args")
-
-    LOGGER.info("functions appear to have ok inputs")
-
-    # TODO: Still need the ability to kill the execution from the finisher queue since it's who knows about all the crashes
+    if get_num_input_vars(output_queue_handler) != 1:
+        raise RuntimeError("output_queue_handler must accept one and only one inputs")
+    
+    if get_num_input_vars(thread_checker_func) != 0:
+        raise RuntimeError("thread_checker_func must accept no inputs")
+    
+    LOGGER.info("callables appear to have ok inputs")
 
     # prep the thread-wide variables
     inq = Queue() # queue full of filenames
     outq = Queue() # queue we will write from
     deathq = Queue() # queue to tell the next thread that's done with execution to die
     kill_boolean = False
-
-    # Execute our on_start function
-    if on_start:
-        LOGGER.info("on_start was provided, getting inputs")
-        all_inputs = common_kwargs
-        all_inputs["iterable"] = iterable
-        input_vars = get_input_vars(on_start, all_inputs)
-
-        LOGGER.info("inputs obtained, going to provide the following variables: {}".format(", ".join(six.iterkeys(input_vars))))
-        mutated = on_start(**input_vars)
-
-        LOGGER.info("on_start complete")
-
-        # allow for any  mutation
-        if mutated:
-            LOGGER.info("on_start returned something, going to try and mutate existing iterable or common_kwargs")
-
-            if not isinstance(mutated, dict):
-                raise RuntimeError("on_start must return nothing or dict")
-
-            if "iterable" in mutated:
-                LOGGER.info("mutating iterable")
-                iterable = mutated["iterable"]
-
-            del mutated["iterable"]
-            if len(mutated) > 0:
-                for k,v in six.iteritems(mutated):
-                    if k in common_kwargs:
-                        LOGGER.info("mutating: {}".format(k))
-                        common_kwargs[k] = v
-
-            LOGGER.info("on_start mutation done")
-
+    
     LOGGER.info("loading up inq")
     # Load up inq
     inq.queue.extend(iterable)
@@ -120,13 +75,10 @@ def execute_dynamic_multithreaded_task(iterable, common_kwargs, thread_checker_f
 
     # spin up our finisher thread
     LOGGER.info("starting up finisher thread")
-    fin_thread = threading.Thread(target=finisher, kwargs={"outq":outq, "output_queue_handler":output_queue_handler,"common_kwargs":common_kwargs,"kill_boolean":kill_boolean})
+    fin_thread = threading.Thread(target=finisher, kwargs={"outq":outq, "output_queue_handler":output_queue_handler,"kill_boolean":kill_boolean})
     fin_thread.start()
 
     # do all the executions, scaling up/down as needed
-    LOGGER.info("getting thread_checker_func's input vars")
-    thread_checker_func_vars = get_input_vars(thread_checker_func, common_kwargs)
-    LOGGER.info("looks like thread_checker_func wants the following vars: {}".format(", ".join(six.iterkeys(thread_checker_func_vars))))
     LOGGER.info("entering infinite loop (until job is done)")
 
     while True:
@@ -138,7 +90,7 @@ def execute_dynamic_multithreaded_task(iterable, common_kwargs, thread_checker_f
             
         if not inq.empty():
             # get new target for our threads
-            target_threads = thread_checker_func(**thread_checker_func_vars)
+            target_threads = thread_checker_func()
 
             # this could feasibly be done better, right now we are blocking until all deathq items are taken
             # we could do math and manage the deathq or spin up more threads based on that, which could make our deathq more accurate and less up / down
@@ -151,7 +103,7 @@ def execute_dynamic_multithreaded_task(iterable, common_kwargs, thread_checker_f
             # spin up threads if need be
             while len(thread_list) < target_threads:
                 LOGGER.debug("spinning up a new worker thread")
-                base_kwargs = {"inq":inq,"outq":outq,"deathq":deathq,"worker_function":worker_function,"common_kwargs":common_kwargs, "kill_boolean":kill_boolean}
+                base_kwargs = {"inq":inq,"outq":outq,"deathq":deathq,"worker_function":worker_function, "kill_boolean":kill_boolean}
                 t = threading.Thread(target=worker, kwargs=base_kwargs)
                 t.start()
                 thread_list.append(t)
@@ -186,13 +138,7 @@ def execute_dynamic_multithreaded_task(iterable, common_kwargs, thread_checker_f
                     print("finisher thread is still running, sleeping")
                     time.sleep(1)
 
-                LOGGER.info("All threads have spun down")
-                if on_finish:
-                    LOGGER.info("running on_finish")
-                    input_vars = get_input_vars(on_start, common_kwargs)
-                    on_finish(**input_vars)
-
-                LOGGER.info("All done! Returning!")
+                LOGGER.info("All threads have spun down, returning!")
                 return
             else:
                 LOGGER.info("inq is empty, but looks like we still have {} threads running, we will wait until all threads complete".format(len(thread_list)))

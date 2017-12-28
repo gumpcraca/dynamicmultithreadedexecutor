@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 setup(name='dynamicmultithreadedexecutor',
-      version='1.0',
+      version='1.0.1',
       description='Dynamic Multi-threaded Executor',
       author='Kevin McCabe',
       author_email='csmp@hotmail.com',

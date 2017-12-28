@@ -10,34 +10,34 @@ logging.basicConfig(format=FORMAT)
 logging.getLogger().setLevel(logging.DEBUG)
 LOGGER = logging.getLogger(__name__)
 
-def thread_checker_func(start, end):
+
+# callables/functions provided can be as simple as a regular function
+def thread_checker_func():    
     return randrange(start, end)
-    
-def worker_function(itm, mongo_obj):
-    time.sleep(randrange(3,5))
-    return "{}.done".format(itm)
 
-def output_queue_handler(itm, mongo_obj, bdb_obj):
-    print("writing {}!".format(itm))
-    return
+# you can also pass in a callable class if you'd like to have some additional variables provided to the worker
+class worker():
+    start = 5
+    end = 10
+    def __call__(self, itm):
+        # do work here!
+        LOGGER.info("handling itm: {}".format(itm))
+        time.sleep(randrange(self.start, self.end))
 
-common_kwargs = {
-    "start":5, 
-    "end":10,
-    "mongo_obj":-1,
-    "bdb_obj":-1
-    }
+# finally you could pass in a class function rather than the whole class, in this example we'll pass in def run
+class output_queue_handler():
+    def __init__(self, itm, mongo_obj, bdb_obj):
+        self.itm = itm
+        self.mongo_obj = mongo_obj
+        self.bdb_obj = bdb_obj
+        
+    def run(self, itm):
+        LOGGER.info("writing {}!", itm)
 
-def on_start():
-    LOGGER.info("hey! This is on_start!")
-
-def on_finish():
-    LOGGER.info("hey! This is on_finish!")
-    
 iterable = range(100)
 poll_period = 20
 
 LOGGER.info("STARTING UP!")
-execute_dynamic_multithreaded_task(iterable, common_kwargs, thread_checker_func, poll_period, worker_function, output_queue_handler, on_start, on_finish)
+execute_dynamic_multithreaded_task(iterable, thread_checker_func, poll_period, worker, output_queue_handler(1,2,3).run)
 
 LOGGER.info("ENDED!")
