@@ -7,6 +7,7 @@ from six.moves.queue import Queue
 import datetime
 import collections
 import inspect
+from sentinels import Sentinel
 
 # internal imports
 from .finisher import finisher
@@ -15,8 +16,6 @@ from .utils import get_num_input_vars
 
 LOGGER = logging.getLogger(__name__)
 
-
-# TODO: change DIE DIE DIE to be a sentinel
 # TODO: Need ability of worker thread to notify main thread to stop - seems like a queue is the right way to go, or maybe a lock/event/semaphore
 
 
@@ -66,7 +65,7 @@ def execute_dynamic_multithreaded_task(iterable, thread_checker_func, poll_perio
     inq = Queue() # queue full of filenames
     outq = Queue() # queue we will write from
     deathq = Queue() # queue to tell the next thread that's done with execution to die
-    kill_boolean = False
+    kill_boolean = threading.Event()
     
     LOGGER.info("loading up inq")
     # Load up inq
@@ -84,7 +83,7 @@ def execute_dynamic_multithreaded_task(iterable, thread_checker_func, poll_perio
 
     while True:
         last_run = datetime.datetime.now()
-        if kill_boolean:
+        if kill_boolean.is_set():
             # everything should spin down and die
             LOGGER.debug("kill_boolean is true, we are going to stop now!")
             return
@@ -114,7 +113,7 @@ def execute_dynamic_multithreaded_task(iterable, thread_checker_func, poll_perio
             for i in range(thread_overage):
                 # kill em
                 LOGGER.debug("sending death signal to deathq")
-                deathq.put("DIE DIE DIE")
+                deathq.put(Sentinel("DIE"))
 
             # wait up to 10 min for deathq to be empty, then start forcibly killing threads
             # TODO: need to implement forcibly killing
@@ -132,7 +131,7 @@ def execute_dynamic_multithreaded_task(iterable, thread_checker_func, poll_perio
             thread_list = [t for t in thread_list if t.is_alive()]
             if not thread_list:
                 print("All worker threads are done, killing finisher thread")
-                outq.put("DIE DIE DIE")
+                outq.put(Sentinel("DIE"))
 
                 # wait for finisher thread to die
                 while fin_thread.is_alive():

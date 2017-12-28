@@ -2,6 +2,8 @@
 from six.moves.queue import Queue, Empty
 import six
 import logging
+from sentinels import Sentinel
+import threading
 
 # internal imports
 from .utils import get_num_input_vars
@@ -21,11 +23,11 @@ def finisher(outq, output_queue_handler, kill_boolean):
 
     :type outq: Queue
     :type output_queue_handler: callable
-    :type kill_boolean: bool
+    :type kill_boolean: threading.Event
     """
     assert isinstance(outq, Queue)
     assert callable(output_queue_handler)
-    assert isinstance(kill_boolean, bool)
+    assert isinstance(kill_boolean, threading.Event)
     
 #     I have been unsuccessful in getting this to work reliably between class methods, regular methods and callable classes    
 #     if get_num_input_vars(output_queue_handler) != 1:
@@ -34,7 +36,7 @@ def finisher(outq, output_queue_handler, kill_boolean):
 #         raise RuntimeError("output_queue_handler function must take in at least one arg!")
     
     while True:
-        if kill_boolean:
+        if kill_boolean.is_set():
             LOGGER.warning("Got a death threat from kill_boolean, quitting")
             return
             
@@ -42,7 +44,7 @@ def finisher(outq, output_queue_handler, kill_boolean):
         output_var = outq.get()
 
         # This is our death signal, could use a sentinel here, but seemed like overkill for just this one thread
-        if output_var == 'DIE DIE DIE':
+        if output_var == Sentinel("DIE"):
             LOGGER.warning("Finisher queue recieved death threat, quitting - if this didn't happen at the end of the program there's a problem")
             # Need to mark execution as complete!
             return

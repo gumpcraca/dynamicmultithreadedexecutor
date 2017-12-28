@@ -29,13 +29,13 @@ def worker(inq, outq, deathq, worker_function, kill_boolean):
     :type outq: Queue
     :type deathq: Queue
     :type worker_function: callable
-    :type kill_boolean: bool
+    :type kill_boolean: threading.Event
     """
     assert isinstance(inq, Queue)
     assert isinstance(outq, Queue)
     assert isinstance(deathq, Queue)
     assert callable(worker_function)
-    assert isinstance(kill_boolean, bool)
+    assert isinstance(kill_boolean, threading.Event)
 
     LOGGER.info("spinning up thread: {}".format(threading.current_thread().name))
     
@@ -56,9 +56,11 @@ def worker(inq, outq, deathq, worker_function, kill_boolean):
             LOGGER.info("spinning down thread: {} - got a death threat from deathq".format(threading.current_thread().name))
             return
             
-        if kill_boolean:
+        if kill_boolean.is_set():
             LOGGER.info("spinning down thread: {} - got a death threat from kill_boolean".format(threading.current_thread().name))
             return
+        else:
+            LOGGER.debug("kill_boolean is not set, continuing!")
         
         # get work to do
         try:
@@ -77,7 +79,7 @@ def worker(inq, outq, deathq, worker_function, kill_boolean):
             }
         except KillExecution:
             LOGGER.warning("we got a KillExecution exception, killing off our execution and returning")
-            kill_boolean = True
+            kill_boolean.set()
             return
         except Exception as e:
             tb = traceback.format_exc()

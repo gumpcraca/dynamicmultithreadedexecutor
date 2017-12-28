@@ -1,4 +1,5 @@
 from dynamicmultithreadedexecutor import execute_dynamic_multithreaded_task
+from dynamicmultithreadedexecutor.exceptions import KillExecution
 
 from random import randrange
 import logging
@@ -24,6 +25,8 @@ class worker():
     def __call__(self, itm):
         # do work here!
         LOGGER.info("handling itm: %s", itm)
+        if itm == 25:
+            raise KillExecution("DEATH!") # this will globally stop the execution of the multithreaded executor
         time.sleep(randrange(self.start, self.end))
 
 # finally you could pass in a class function rather than the whole class, in this example we'll pass in def run
