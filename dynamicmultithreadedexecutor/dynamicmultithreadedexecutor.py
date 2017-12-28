@@ -47,19 +47,20 @@ def execute_dynamic_multithreaded_task(iterable, thread_checker_func, poll_perio
     assert callable(worker_function)
     assert callable(output_queue_handler)
 
-    LOGGER.info("all assertions passed, doing some checks on the callables passed in")
+    LOGGER.info("all assertions passed")
     
     # Validate function inputs are good (check to ensure they accept at least one variable
-    if get_num_input_vars(worker_function) != 1:
-        raise RuntimeError("worker_function must accept one and only one inputs")
-
-    if get_num_input_vars(output_queue_handler) != 1:
-        raise RuntimeError("output_queue_handler must accept one and only one inputs")
-    
-    if get_num_input_vars(thread_checker_func) != 0:
-        raise RuntimeError("thread_checker_func must accept no inputs")
-    
-    LOGGER.info("callables appear to have ok inputs")
+    # I haven't been able to get this to work reliably between callable classes / functions and class methods, giving up.
+#     if get_num_input_vars(worker_function) != 1:
+#         raise RuntimeError("worker_function must accept one and only one inputs")
+# 
+#     if get_num_input_vars(output_queue_handler) != 1:
+#         raise RuntimeError("output_queue_handler must accept one and only one inputs")
+#     
+#     if get_num_input_vars(thread_checker_func) != 0:
+#         raise RuntimeError("thread_checker_func must accept no inputs")
+#     
+#     LOGGER.info("callables appear to have ok inputs")
 
     # prep the thread-wide variables
     inq = Queue() # queue full of filenames

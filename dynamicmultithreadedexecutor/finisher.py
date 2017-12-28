@@ -27,10 +27,11 @@ def finisher(outq, output_queue_handler, kill_boolean):
     assert callable(output_queue_handler)
     assert isinstance(kill_boolean, bool)
     
-    if get_num_input_vars(output_queue_handler) != 1:
-        # TODO: Need a sentinel that will kill everything
-        kill_boolean = True
-        raise RuntimeError("output_queue_handler function must take in at least one arg!")
+#     I have been unsuccessful in getting this to work reliably between class methods, regular methods and callable classes    
+#     if get_num_input_vars(output_queue_handler) != 1:
+#         # TODO: Need a sentinel that will kill everything
+#         kill_boolean = True
+#         raise RuntimeError("output_queue_handler function must take in at least one arg!")
     
     while True:
         if kill_boolean:

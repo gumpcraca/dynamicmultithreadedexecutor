@@ -7,7 +7,7 @@ def get_num_input_vars(callable_obj):
     Return the number of args a function takes in
     """
     assert callable(callable_obj), "object must be callable"
-    args = inspect.getfullargspec(callable_obj).args
+    args = inspect.getfullargspec(callable_obj.__call__).args
     specials = ["self"]
     args = [a for a in args if a not in specials]
     return len(args)

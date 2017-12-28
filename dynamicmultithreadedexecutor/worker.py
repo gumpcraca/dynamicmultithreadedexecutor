@@ -39,10 +39,11 @@ def worker(inq, outq, deathq, worker_function, kill_boolean):
 
     LOGGER.info("spinning up thread: {}".format(threading.current_thread().name))
     
-    if get_num_input_vars(worker_function) != 1:
-        # Set our flag to kill all the things
-        kill_boolean = True
-        raise RuntimeError("worker function must take in at least one arg!")
+#     I give up... can't get this to work  yet    
+#     if get_num_input_vars(worker_function) != 1:
+#         # Set our flag to kill all the things
+#         kill_boolean = True
+#         raise RuntimeError("worker function must take in at least one arg!")
 
     while True:
         # check the Queue to see if we should die
@@ -79,7 +80,7 @@ def worker(inq, outq, deathq, worker_function, kill_boolean):
             kill_boolean = True
             return
         except Exception as e:
-            tb = traceback.format_exec()
+            tb = traceback.format_exc()
             output = {
                 "execution_success":False,
                 "exception_message":str(e),
