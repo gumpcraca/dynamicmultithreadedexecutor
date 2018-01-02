@@ -126,24 +126,24 @@ def execute_dynamic_multithreaded_task(iterable, thread_checker_func, poll_perio
 
             LOGGER.debug("Currently have %s threads running", len(thread_list))
 
-        else:
-            # inq is empty, we need to see if we have any threads
-            thread_list = [t for t in thread_list if t.is_alive()]
-            if not thread_list:
-                print("All worker threads are done, killing finisher thread")
-                outq.put(Sentinel("DIE"))
-
-                # wait for finisher thread to die
-                while fin_thread.is_alive():
-                    print("finisher thread is still running, sleeping")
-                    time.sleep(1)
-
-                LOGGER.info("All threads have spun down, returning!")
-                return
-            else:
-                LOGGER.info("inq is empty, but looks like we still have %s threads running, we will wait until all threads complete", len(thread_list))
-
-
         # only check for load every [poll_period] seconds
         while (datetime.datetime.now() - last_run).total_seconds() < poll_period:
+            # Need to check if we're actually done
+            if inq.empty():
+                # inq is empty, we need to see if we have any threads
+                thread_list = [t for t in thread_list if t.is_alive()]
+                if not thread_list:
+                    LOGGER.info("All worker threads are done, killing finisher thread")
+                    outq.put(Sentinel("DIE"))
+
+                    # wait for finisher thread to die
+                    while fin_thread.is_alive():
+                        LOGGER.info("finisher thread is still running, sleeping")
+                        time.sleep(1)
+
+                    LOGGER.info("All threads have spun down, returning!")
+                    return
+                else:
+                    LOGGER.info("inq is empty, but looks like we still have %s threads running, we will wait until all threads complete", len(thread_list))
+
             time.sleep(1)
