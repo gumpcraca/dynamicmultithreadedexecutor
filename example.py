@@ -27,9 +27,10 @@ class worker():
     end = 10
     def __call__(self, itm):
         # do work here!
-        LOGGER.info("handling itm: %s", itm)
+        LOGGER.info("handling itm: %s, start is: %s", itm, self.start)
         if itm == 25:
-            raise KillExecution("DEATH!") # this will globally stop the execution of the multithreaded executor
+            #raise KillExecution("DEATH!") # this will globally stop the execution of the multithreaded executor
+            self.start = 1
         time.sleep(randrange(self.start, self.end))
 
 # finally you could pass in a class function rather than the whole class, in this example we'll pass in def run

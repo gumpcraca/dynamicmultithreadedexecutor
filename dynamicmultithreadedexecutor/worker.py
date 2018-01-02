@@ -86,7 +86,8 @@ def worker(inq, outq, deathq, worker_function, kill_boolean):
             output = {
                 "execution_success":False,
                 "exception_message":str(e),
-                "traceback":tb
+                "traceback":tb,
+                "queue_item":str(itm_to_run)[:200]
             }
 
         # dump our output into the outq
