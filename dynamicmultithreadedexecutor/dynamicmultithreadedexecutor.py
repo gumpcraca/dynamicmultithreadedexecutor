@@ -80,7 +80,10 @@ def execute_dynamic_multithreaded_task(iterable, thread_checker_func, poll_perio
 
     # do all the executions, scaling up/down as needed
     LOGGER.info("entering infinite loop (until job is done)")
-
+    
+    # initializing this so we don't die on the first run
+    target_threads = 0
+    
     while True:
         last_run = datetime.datetime.now()
         if kill_boolean.is_set():
@@ -90,7 +93,7 @@ def execute_dynamic_multithreaded_task(iterable, thread_checker_func, poll_perio
             
         if not inq.empty():
             # get new target for our threads
-            target_threads = thread_checker_func()
+            target_threads = thread_checker_func(target_threads)
 
             # this could feasibly be done better, right now we are blocking until all deathq items are taken
             # we could do math and manage the deathq or spin up more threads based on that, which could make our deathq more accurate and less up / down

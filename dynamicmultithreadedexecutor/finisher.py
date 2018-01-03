@@ -7,6 +7,7 @@ import threading
 
 # internal imports
 from .utils import get_num_input_vars
+from .exceptions import KillExecution
 
 LOGGER = logging.getLogger(__name__)
 
@@ -48,7 +49,11 @@ def finisher(outq, output_queue_handler, kill_boolean):
             LOGGER.warning("Finisher queue recieved death threat, quitting - if this didn't happen at the end of the program there's a problem")
             # Need to mark execution as complete!
             return
-        
-        output_queue_handler(output_var)
-
+        try:
+            output_queue_handler(output_var)
+        except KillExecution:
+            LOGGER.warning("we got a KillExecution exception inside of finisher, killing off our execution and returning")
+            kill_boolean.set()
+            return
+    
     raise RuntimeError("We should never get here, somehow we exited our while loop")
