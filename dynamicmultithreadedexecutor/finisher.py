@@ -7,7 +7,7 @@ import threading
 
 # internal imports
 from .utils import get_num_input_vars
-from .exceptions import KillExecution
+from .exceptions import KillExecution, DMTEEerror
 
 LOGGER = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ def finisher(outq, output_queue_handler, kill_boolean):
         output_var = outq.get()
 
         # This is our death signal, could use a sentinel here, but seemed like overkill for just this one thread
-        if output_var == Sentinel("DIE"):
+        if output_var is Sentinel("DIE"):
             LOGGER.warning("Finisher queue recieved death threat, quitting - if this didn't happen at the end of the program there's a problem")
             # Need to mark execution as complete!
             return
@@ -56,4 +56,4 @@ def finisher(outq, output_queue_handler, kill_boolean):
             kill_boolean.set()
             return
     
-    raise RuntimeError("We should never get here, somehow we exited our while loop")
+    raise DMTEEerror("We should never get here, somehow we exited our while loop")

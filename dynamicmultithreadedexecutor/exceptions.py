@@ -4,3 +4,9 @@ class KillExecution(Exception):
     the rest of our workers will gracefully exit along with all other threads
     """
     pass
+
+class DMTEEerror(Exception):
+    """
+    This is used instead of RuntimeError
+    """
+    pass

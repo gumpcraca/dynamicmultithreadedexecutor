@@ -1,6 +1,7 @@
 # public imports
 import six
 import inspect
+from .exceptions import DMTEEerror
 
 def get_num_input_vars(callable_obj):
     """
@@ -43,6 +44,6 @@ def get_input_vars(func, possible_inputs, check_compliance = True):
 
     if set(required) != set(applicable_vars) and check_compliance:
         # looks like we aren't going to provide enough variables for this to be successful
-        raise RuntimeError("looks like function: {} has required vars: {} but we can only provide: {}".format(func.__code__.co_name,", ".join(required), ", ".join(six.iterkeys(applicable_vars))))
+        raise DMTEEerror("looks like function: {} has required vars: {} but we can only provide: {}".format(func.__code__.co_name,", ".join(required), ", ".join(six.iterkeys(applicable_vars))))
 
     return applicable_vars

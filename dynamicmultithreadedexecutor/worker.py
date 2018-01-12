@@ -8,6 +8,7 @@ import traceback
 # internal imports
 from .utils import get_num_input_vars
 from .exceptions import KillExecution
+from .result import ExceptionResult, SuccessfulResult
 
 LOGGER = logging.getLogger(__name__)
 
@@ -72,23 +73,21 @@ def worker(inq, outq, deathq, worker_function, kill_boolean):
         # Do work son!
         try:
             response = worker_function(itm_to_run)
-            
-            output = {
-                "execution_success":True,
-                "task_output":response
-            }
+            output = SuccessfulResult(
+                queue_item=itm_to_run,
+                task_output=response
+            )
         except KillExecution:
             LOGGER.warning("we got a KillExecution exception, killing off our execution and returning")
             kill_boolean.set()
             return
         except Exception as e:
             tb = traceback.format_exc()
-            output = {
-                "execution_success":False,
-                "exception_message":str(e),
-                "traceback":tb,
-                "queue_item":str(itm_to_run)[:200]
-            }
+            output = ExceptionResult(
+                queue_item=itm_to_run,
+                exception_message=str(e),
+                traceback = tb,
+            )
 
         # dump our output into the outq
         outq.put(output)
