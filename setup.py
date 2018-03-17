@@ -11,6 +11,5 @@ setup(name='dynamicmultithreadedexecutor',
       keywords = [],
       packages=find_packages(),
       install_requires=['six','sentinels'],
-      py_modules=["six"],
       classifiers = [],
      )
