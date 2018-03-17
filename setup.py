@@ -2,9 +2,6 @@
 
 from setuptools import setup, find_packages
 
-print("STARTING INSTALL!!!!")
-print(find_packages())
-
 setup(name='dynamicmultithreadedexecutor',
       version='1.0.2',
       description='Dynamic Multi-threaded Executor',
